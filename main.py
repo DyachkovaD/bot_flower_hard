@@ -1,14 +1,12 @@
 import logging
 import asyncio
 import sys
-import logging
-import asyncio
-import sys
 
 from aiogram import Bot, Dispatcher, types, BaseMiddleware, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
+
 from config import TOKEN
 from handlers import router
 from aiogram.fsm.context import FSMContext
@@ -21,7 +19,7 @@ scheduler.start()
 dp = Dispatcher()  # запускает программу, к нему цепляются роутеры
 
 
-# Позволяет доставать scheduler из агрументов функции
+# Позволяет доставать scheduler из аргументов функции
 class SchedulerMiddleware(BaseMiddleware):
     def __init__(self, scheduler: AsyncIOScheduler):
         super().__init__()
@@ -33,16 +31,18 @@ class SchedulerMiddleware(BaseMiddleware):
         return await handler(event, data)
 
 
-
-flowers = {}
-
-
 @dp.message(CommandStart())
 async def command_start_handler(message: types.Message, bot: Bot):
     await bot.send_message(message.chat.id, f"🪴 Привет! Я помогу тебе не забыть полить свои любимые растения 🪴. \n\n"
-                                            f"Чтобы добавить растение 🌸 в календарь полива, введите\n"
-                                            f"/add (цветок) (сколько раз в неделю нужно поливать) \n\n"
-                                            f"Например: Фиалка 3")
+                                            f"Чтобы добавить растение 🌸 в календарь полива, введите /flowers")
+
+
+@dp.message(Command("help"))
+async def handle_help(message: types.Message):
+    text = ("Список доступных команд:\n"
+            "/start - начало работы с ботом\n"
+            "/flowers - управление напоминаниями")
+    await message.answer(text=text)
 
 
 async def main() -> None:
@@ -60,4 +60,10 @@ if __name__=="__main__":
         level=logging.INFO,
         stream=sys.stdout
     )
-    asyncio.run(main())
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(main())
+    except KeyboardInterrupt:
+        pass
+    finally:
+        loop.close()
