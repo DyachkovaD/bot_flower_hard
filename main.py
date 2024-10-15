@@ -9,8 +9,8 @@ from aiogram import Bot, Dispatcher, types, BaseMiddleware, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
-from token_data import TOKEN
-from handlers import router, Actions
+from config import TOKEN
+from handlers import router
 from aiogram.fsm.context import FSMContext
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
