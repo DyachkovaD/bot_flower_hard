@@ -1,9 +1,8 @@
 import logging
 
 from aiogram import Router, types
-from aiogram.filters import Command, CommandObject
-from contextlib import closing
-from aiogram import BaseMiddleware, F, Bot
+from aiogram.filters import Command
+from aiogram import BaseMiddleware, F
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils import markdown
@@ -16,6 +15,7 @@ from datetime import datetime, timedelta
 from keyboards import build_flowers_kb, NotificationCallback, build_weekdays_kb, days_of_week
 
 router = Router()
+scheduler = AsyncIOScheduler(timezone='Europe/Moscow')
 
 flowers = {}
 list_of_days = []
@@ -109,9 +109,22 @@ async def handle_days_of_week(call: CallbackQuery, state: FSMContext):
 
         await send_results(call, data, days)
         await state.clear()
+
+        # Добавление в расписание
+        days = flowers[call.from_user.id].get(data['flower_name'])
+        now = datetime.now().weekday()
+        days_to_next_water = [x - now if x > now else (7 - now + x) for x in days]
+        for i in range(len(days_to_next_water)):
+            start_date = datetime.now() + timedelta(days=days_to_next_water[i])
+            scheduler.add_job(call.message.answer, 'interval', days=7, start_date=start_date,
+                              args=[f"Напоминаю полить 🌧️ {data['flower_name']}"],
+                              id=f"{data['flower_name']}_{days[i]}")    # id = "Фиалка_3"
+
     else:
         clean_data = call.data.split(":")[1]
         list_of_days.append(clean_data)
+
+    print(flowers)
 
 
 # Обработка кнопки удаления напоминаний. Пробегает по напоминаниям и формирует клавиатуру.
@@ -158,13 +171,13 @@ async def handle_edit_notification(call: CallbackQuery, callback_data: EditNotif
 async def handle_delete_notifications(call: CallbackQuery, callback_data: EditNotificationCallback):
     flower_name = callback_data.flower_name
     global flowers
+
+    # Удаление всех задач с цветком, который удаляем
+    for job in scheduler.get_jobs():
+        if job.id.startswith(flower_name):
+            scheduler.remove_job(job.id)
+
     del flowers[call.from_user.id][flower_name]
     await call.answer()
     await call.message.edit_text(text="Удалено!",)
 
-#    шедулер переделать
-# scheduler.add_job(bot.send_message, 'interval', days=int(frequency),
-#                   args=[message.from_user.id, f"Напоминаю полить 🌧️ {flower}"])
-#
-# watering = datetime.now() + timedelta(seconds=int(frequency))
-# await message.answer(f"Следующий полив 💧: {datetime.strftime(watering, '%A %H:%M')}")
