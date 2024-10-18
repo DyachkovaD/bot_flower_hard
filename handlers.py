@@ -228,19 +228,19 @@ async def handle_rename_notification(message: Message, state: FSMContext):
     save_data()
 
     # Удаление всех задач с цветком, который изменяем
-    # for job in scheduler.get_jobs():
-    #     if job.id.startswith(old_flower_name):
-    #         scheduler.remove_job(job.id)
+    for job in scheduler.get_jobs():
+        if job.id.startswith(old_flower_name):
+            scheduler.remove_job(job.id)
 
     # Добавление в расписание
-    # days = flowers[user_id].get(data['flower_name'])
-    # now = datetime.now().weekday()
-    # days_to_next_water = [x - now if x > now else (7 - now + x) for x in days]
-    # for i in range(len(days_to_next_water)):
-    #     start_date = datetime.now() + timedelta(days=days_to_next_water[i])
-    #     scheduler.add_job(message.answer, 'interval', days=7, start_date=start_date,
-    #                       args=[f"Напоминаю полить 🌧️ {data['flower_name']}"],
-    #                       id=f"{data['flower_name']}_{days[i]}")  # id = "Фиалка_3"
+    days = flowers[user_id].get(new_flower_name)
+    now = datetime.now().weekday()
+    days_to_next_water = [x - now if x > now else (7 - now + x) for x in days]
+    for i in range(len(days_to_next_water)):
+        start_date = datetime.now() + timedelta(days=days_to_next_water[i])
+        scheduler.add_job(message.answer, 'interval', days=7, start_date=start_date,
+                          args=[f"Напоминаю полить 🌧️ {new_flower_name}"],
+                          id=f"{new_flower_name}_{days[i]}")  # id = "Фиалка_3"
 
     await state.clear()
     await message.answer(
@@ -282,15 +282,19 @@ async def handle_new_notification_days(call: CallbackQuery, state: FSMContext):
         await send_results(call, data, days)
         await state.clear()
 
+        for job in scheduler.get_jobs():
+            if job.id.startswith(data['flower_name']):
+                scheduler.remove_job(job.id)
+
         # Корректировка расписания
-        # days = flowers[user_id].get(data['flower_name'])
-        # now = datetime.now().weekday()
-        # days_to_next_water = [x - now if x > now else (7 - now + x) for x in days]
-        # for i in range(len(days_to_next_water)):
-        #     start_date = datetime.now() + timedelta(days=days_to_next_water[i])
-        #     scheduler.add_job(call.message.answer, 'interval', days=7, start_date=start_date,
-        #                       args=[f"Напоминаю полить 🌧️ {data['flower_name']}"],
-        #                       id=f"{data['flower_name']}_{days[i]}")    # id = "Фиалка_3"
+        days = flowers[user_id].get(data['flower_name'])
+        now = datetime.now().weekday()
+        days_to_next_water = [x - now if x > now else (7 - now + x) for x in days]
+        for i in range(len(days_to_next_water)):
+            start_date = datetime.now() + timedelta(days=days_to_next_water[i])
+            scheduler.add_job(call.message.answer, 'interval', days=7, start_date=start_date,
+                              args=[f"Напоминаю полить 🌧️ {data['flower_name']}"],
+                              id=f"{data['flower_name']}_{days[i]}")    # id = "Фиалка_3"
     else:
         if call.data.split(":")[1] in list_of_days:
             list_of_days.remove(call.data.split(":")[1])
