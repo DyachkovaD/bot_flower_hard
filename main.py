@@ -8,7 +8,6 @@ from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-
 from config import TOKEN
 from handlers import router, scheduler
 

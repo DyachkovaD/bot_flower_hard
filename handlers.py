@@ -2,8 +2,9 @@ import json
 import logging
 
 from aiogram import Router, types
+
 from aiogram.filters import Command
-from aiogram import BaseMiddleware, F
+from aiogram import F
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils import markdown
@@ -13,10 +14,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from datetime import datetime, timedelta
 
+
 from keyboards import NotificationCallback, build_weekdays_kb, days_of_week
 
 router = Router()
 scheduler = AsyncIOScheduler(timezone='Europe/Moscow')
+
+flowers = {}  # Определяем flowers здесь
 
 
 def load_data():
@@ -343,4 +347,3 @@ async def handle_delete_notification(call: CallbackQuery, callback_data: EditNot
     save_data()
     await call.answer()
     await call.message.edit_text(text="Удалено!",)
-
