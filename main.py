@@ -6,29 +6,18 @@ from aiogram import Bot, Dispatcher, types, BaseMiddleware, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
-
-from config import TOKEN
-from handlers import router
-from aiogram.fsm.context import FSMContext
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from datetime import datetime, timedelta
 
-scheduler = AsyncIOScheduler(timezone='Europe/Moscow')
-scheduler.start()
+from config import TOKEN
+from handlers import router, scheduler
+
+
+bot = Bot(
+    token=TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
 dp = Dispatcher()  # запускает программу, к нему цепляются роутеры
-
-
-# Позволяет доставать scheduler из аргументов функции
-class SchedulerMiddleware(BaseMiddleware):
-    def __init__(self, scheduler: AsyncIOScheduler):
-        super().__init__()
-        self._scheduler = scheduler
-
-    async def __call__(self, handler, event, data):
-        # прокидываем в словарь состояния scheduler
-        data['scheduler'] = self._scheduler
-        return await handler(event, data)
 
 
 @dp.message(CommandStart())
@@ -46,13 +35,9 @@ async def handle_help(message: types.Message):
 
 
 async def main() -> None:
+    scheduler.start()
     dp.include_router(router)
-    dp.update.middleware(SchedulerMiddleware(scheduler=scheduler))
 
-    bot = Bot(
-        token=TOKEN,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-    )
     await dp.start_polling(bot)
 
 if __name__=="__main__":
