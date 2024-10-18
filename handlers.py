@@ -1,4 +1,3 @@
-import json
 import logging
 
 from aiogram import Router, types
@@ -21,22 +20,6 @@ router = Router()
 scheduler = AsyncIOScheduler(timezone='Europe/Moscow')
 
 flowers = {}  # Определяем flowers здесь
-
-
-def load_data():
-    try:
-        with open('flowers.json', 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-
-
-def save_data():
-    with open('flowers.json', 'w') as f:
-        json.dump(flowers, f, ensure_ascii=False, indent=4)
-
-
-flowers = load_data()
 list_of_days = []
 
 
@@ -139,7 +122,6 @@ async def handle_days_of_week(call: CallbackQuery, state: FSMContext):
         data = await state.update_data(weekdays=weekdays)
         # Запись полученных данных в "бд" словарь flowers
         flowers.setdefault(user_id, {}).setdefault(data["flower_name"], data["weekdays"])
-        save_data()
 
         await send_results(call, data, days)
         await state.clear()
@@ -225,7 +207,6 @@ async def handle_rename_notification(message: Message, state: FSMContext):
     days = flowers[user_id].get(data["old_flower_name"])
     flowers[user_id].pop(old_flower_name)
     flowers[user_id][new_flower_name] = days
-    save_data()
 
     # Удаление всех задач с цветком, который изменяем
     for job in scheduler.get_jobs():
@@ -277,7 +258,6 @@ async def handle_new_notification_days(call: CallbackQuery, state: FSMContext):
         list_of_days = []
         data = await state.update_data(weekdays=weekdays)
         flowers[user_id][data["flower_name"]] = data["weekdays"]
-        save_data()
 
         await send_results(call, data, days)
         await state.clear()
@@ -348,6 +328,5 @@ async def handle_delete_notification(call: CallbackQuery, callback_data: EditNot
             scheduler.remove_job(job.id)
 
     del flowers[user_id][flower_name]
-    save_data()
     await call.answer()
     await call.message.edit_text(text="Удалено!",)
