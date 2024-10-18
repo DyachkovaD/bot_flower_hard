@@ -22,14 +22,6 @@ days_of_week = {
 }
 
 
-def build_flowers_kb() -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.button(text="Добавить напоминание", callback_data=NotificationCallback(action="add").pack())
-    builder.button(text="Удалить напоминаниe", callback_data=NotificationCallback(action="edit").pack())
-    builder.adjust(1)
-    return builder.as_markup()
-
-
 def build_weekdays_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for k, v in days_of_week.items():
