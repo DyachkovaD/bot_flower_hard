@@ -6,12 +6,12 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from config import TOKEN
 from handlers import router
-from main import dp, SchedulerMiddleware, scheduler
+from main import dp
 
 
 async def main() -> None:
     dp.include_router(router)
-    dp.update.middleware(SchedulerMiddleware(scheduler=scheduler))
+    # dp.update.middleware(SchedulerMiddleware(scheduler=scheduler))
 
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     await dp.start_polling(bot)

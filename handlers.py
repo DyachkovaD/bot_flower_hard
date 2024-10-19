@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from keyboards import NotificationCallback, build_weekdays_kb, days_of_week
 
 router = Router()
-scheduler = AsyncIOScheduler(timezone='Europe/Moscow')
+scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
 
 flowers = {}  # Определяем flowers здесь
 list_of_days = []
@@ -39,7 +39,6 @@ class EditNotificationCallback(CallbackData, prefix="edit"):
     action: str
 
 
-
 # Обработка команды /cancel во время опроса
 @router.message(Command("cancel"))
 @router.message(F.text.casefold() == "cancel")
@@ -50,9 +49,7 @@ async def cancel_handler(message: Message, state: FSMContext) -> None:
 
     logging.info("Отмена состояния %r", current_state)
     await state.clear()
-    await message.answer(
-        "Отменено."
-    )
+    await message.answer("Отменено.")
 
 
 # Обработка команды /flowers для управления напоминаниями
@@ -61,10 +58,19 @@ async def handle_flowers(message: types.Message):
     user_id = str(message.from_user.id)
     text = "Управление напоминаниями:"
     builder = InlineKeyboardBuilder()
-    builder.button(text="Добавить напоминание", callback_data=NotificationCallback(action="add").pack())
+    builder.button(
+        text="Добавить напоминание",
+        callback_data=NotificationCallback(action="add").pack(),
+    )
     if user_id in flowers.keys():
-        builder.button(text="Изменить напоминаниe", callback_data=NotificationCallback(action="edit").pack())
-        builder.button(text="Удалить напоминаниe", callback_data=NotificationCallback(action="delete").pack())
+        builder.button(
+            text="Изменить напоминаниe",
+            callback_data=NotificationCallback(action="edit").pack(),
+        )
+        builder.button(
+            text="Удалить напоминаниe",
+            callback_data=NotificationCallback(action="delete").pack(),
+        )
     builder.adjust(1)
     await message.answer(text=text, reply_markup=builder.as_markup())
 
@@ -75,8 +81,7 @@ async def handle_add_notification(call: CallbackQuery, state: FSMContext):
     await call.answer()
     await state.set_state(Notification.flower_name)
     await call.message.edit_text(
-        text="Напишите название растения.\n"
-             "Для отмены введите /cancel",
+        text="Напишите название растения.\n" "Для отмены введите /cancel",
     )
 
 
@@ -84,7 +89,9 @@ async def handle_add_notification(call: CallbackQuery, state: FSMContext):
 @router.message(Notification.flower_name)
 async def handle_add_notification_name(message: Message, state: FSMContext):
     if not message.text:
-        await message.answer("Некорректный ввод. Пожалуйста, введите наименование растения",)
+        await message.answer(
+            "Некорректный ввод. Пожалуйста, введите наименование растения",
+        )
         return
     await state.update_data(flower_name=message.text)
     await state.set_state(Notification.weekdays)
@@ -92,19 +99,20 @@ async def handle_add_notification_name(message: Message, state: FSMContext):
         f"Вы добавляете напоминание для полива растения: {markdown.hbold(message.text)}.\n"
         "Выберите дни недели для полива. Определившись с выбором, нажмите 'Готово!'\n"
         "Для отмены введите /cancel",
-        reply_markup=build_weekdays_kb()
+        reply_markup=build_weekdays_kb(),
     )
 
 
 # Вывод результатов опроса
 async def send_results(call: CallbackQuery, data: dict, days: str):
     text = markdown.text(
-        "Напоминание добавлено:"
-        "",
+        "Напоминание добавлено:" "",
         markdown.text("Наименование растения: ", markdown.hbold(data["flower_name"])),
-        markdown.text(f"Выбранные дни полива: {markdown.hbold(days)}\n"
-                      f"Для управления напоминаниями введите /flowers"),
-        sep='\n',
+        markdown.text(
+            f"Выбранные дни полива: {markdown.hbold(days)}\n"
+            f"Для управления напоминаниями введите /flowers"
+        ),
+        sep="\n",
     )
     await call.message.edit_text(text=text)
 
@@ -121,20 +129,27 @@ async def handle_days_of_week(call: CallbackQuery, state: FSMContext):
         list_of_days = []
         data = await state.update_data(weekdays=weekdays)
         # Запись полученных данных в "бд" словарь flowers
-        flowers.setdefault(user_id, {}).setdefault(data["flower_name"], data["weekdays"])
+        flowers.setdefault(user_id, {}).setdefault(
+            data["flower_name"], data["weekdays"]
+        )
 
         await send_results(call, data, days)
         await state.clear()
 
         # Добавление в расписание
-        days = flowers[user_id].get(data['flower_name'])
+        days = flowers[user_id].get(data["flower_name"])
         now = datetime.now().weekday()
         days_to_next_water = [x - now if x > now else (7 - now + x) for x in days]
         for i in range(len(days_to_next_water)):
             start_date = datetime.now() + timedelta(days=days_to_next_water[i])
-            scheduler.add_job(call.message.answer, 'interval', days=7, start_date=start_date,
-                              args=[f"Напоминаю полить 🌧️ {data['flower_name']}"],
-                              id=f"{data['flower_name']}_{days[i]}")    # id = "Фиалка_3"
+            scheduler.add_job(
+                call.message.answer,
+                "interval",
+                days=7,
+                start_date=start_date,
+                args=[f"Напоминаю полить 🌧️ {data['flower_name']}"],
+                id=f"{data['flower_name']}_{days[i]}",
+            )  # id = "Фиалка_3"
     else:
         if call.data.split(":")[1] in list_of_days:
             list_of_days.remove(call.data.split(":")[1])
@@ -152,25 +167,35 @@ async def handle_edit_notifications(call: CallbackQuery):
     for flower in flowers[user_id].keys():
         builder.button(
             text=flower,
-            callback_data=EditNotificationCallback(flower_name=flower, action="edit").pack()
+            callback_data=EditNotificationCallback(
+                flower_name=flower, action="edit"
+            ).pack(),
         )
     builder.adjust(1)
     await call.answer()
-    await call.message.edit_text(text="Ваши напоминания:", reply_markup=builder.as_markup())
+    await call.message.edit_text(
+        text="Ваши напоминания:", reply_markup=builder.as_markup()
+    )
 
 
 # Обработка изменения напоминания
-@router.callback_query(EditNotificationCallback.filter(F.action == 'edit'))
-async def handle_edit_notification(call: CallbackQuery, callback_data: EditNotificationCallback):
+@router.callback_query(EditNotificationCallback.filter(F.action == "edit"))
+async def handle_edit_notification(
+    call: CallbackQuery, callback_data: EditNotificationCallback
+):
     flower_name = callback_data.flower_name
     builder = InlineKeyboardBuilder()
     builder.button(
         text="Изменить наименование растения",
-        callback_data=EditNotificationCallback(action="edit_flower_name", flower_name=flower_name).pack()
+        callback_data=EditNotificationCallback(
+            action="edit_flower_name", flower_name=flower_name
+        ).pack(),
     )
     builder.button(
         text="Изменить дни полива",
-        callback_data=EditNotificationCallback(action="edit_weekdays", flower_name=flower_name).pack()
+        callback_data=EditNotificationCallback(
+            action="edit_weekdays", flower_name=flower_name
+        ).pack(),
     )
     builder.adjust(1)
     await call.answer()
@@ -182,15 +207,16 @@ async def handle_edit_notification(call: CallbackQuery, callback_data: EditNotif
 
 # Запуск опроса на изменение наименования растения
 @router.callback_query(EditNotificationCallback.filter(F.action == "edit_flower_name"))
-async def handle_edit_notification_name(call: CallbackQuery, callback_data: EditNotificationCallback, state: FSMContext):
+async def handle_edit_notification_name(
+    call: CallbackQuery, callback_data: EditNotificationCallback, state: FSMContext
+):
     old_flower_name = callback_data.flower_name
     await call.answer()
     await state.set_state(EditNotification.old_flower_name)
     await state.update_data(old_flower_name=old_flower_name)
     await state.set_state(EditNotification.flower_name)
     await call.message.edit_text(
-        text="Напишите новое название растения.\n"
-             "Для отмены введите /cancel",
+        text="Напишите новое название растения.\n" "Для отмены введите /cancel",
     )
 
 
@@ -198,7 +224,9 @@ async def handle_edit_notification_name(call: CallbackQuery, callback_data: Edit
 @router.message(EditNotification.flower_name)
 async def handle_rename_notification(message: Message, state: FSMContext):
     if not message.text:
-        await message.answer("Некорректный ввод. Пожалуйста, введите наименование растения",)
+        await message.answer(
+            "Некорректный ввод. Пожалуйста, введите наименование растения",
+        )
         return
     data = await state.update_data(flower_name=message.text)
     user_id = str(message.from_user.id)
@@ -219,9 +247,14 @@ async def handle_rename_notification(message: Message, state: FSMContext):
     days_to_next_water = [x - now if x > now else (7 - now + x) for x in days]
     for i in range(len(days_to_next_water)):
         start_date = datetime.now() + timedelta(days=days_to_next_water[i])
-        scheduler.add_job(message.answer, 'interval', days=7, start_date=start_date,
-                          args=[f"Напоминаю полить 🌧️ {new_flower_name}"],
-                          id=f"{new_flower_name}_{days[i]}")  # id = "Фиалка_3"
+        scheduler.add_job(
+            message.answer,
+            "interval",
+            days=7,
+            start_date=start_date,
+            args=[f"Напоминаю полить 🌧️ {new_flower_name}"],
+            id=f"{new_flower_name}_{days[i]}",
+        )  # id = "Фиалка_3"
 
     await state.clear()
     await message.answer(
@@ -232,7 +265,9 @@ async def handle_rename_notification(message: Message, state: FSMContext):
 
 # Запуск опроса на изменение дней полива
 @router.callback_query(EditNotificationCallback.filter(F.action == "edit_weekdays"))
-async def handle_edit_notification_days(call: CallbackQuery, callback_data: EditNotificationCallback, state: FSMContext):
+async def handle_edit_notification_days(
+    call: CallbackQuery, callback_data: EditNotificationCallback, state: FSMContext
+):
     flower_name = callback_data.flower_name
     await call.answer()
     await state.set_state(EditNotification.flower_name)
@@ -240,9 +275,9 @@ async def handle_edit_notification_days(call: CallbackQuery, callback_data: Edit
     await state.set_state(EditNotification.weekdays)
     await call.message.edit_text(
         text=f"Вы редактируете дни напоминаний для полива растения: {flower_name}.\n"
-             f"Выберите новые дни недели для полива. Определившись с выбором, нажмите 'Готово!'\n"
-             f"Для отмены введите /cancel",
-        reply_markup=build_weekdays_kb()
+        f"Выберите новые дни недели для полива. Определившись с выбором, нажмите 'Готово!'\n"
+        f"Для отмены введите /cancel",
+        reply_markup=build_weekdays_kb(),
     )
 
 
@@ -263,18 +298,23 @@ async def handle_new_notification_days(call: CallbackQuery, state: FSMContext):
         await state.clear()
 
         for job in scheduler.get_jobs():
-            if job.id.startswith(data['flower_name']):
+            if job.id.startswith(data["flower_name"]):
                 scheduler.remove_job(job.id)
 
         # Корректировка расписания
-        days = flowers[user_id].get(data['flower_name'])
+        days = flowers[user_id].get(data["flower_name"])
         now = datetime.now().weekday()
         days_to_next_water = [x - now if x > now else (7 - now + x) for x in days]
         for i in range(len(days_to_next_water)):
             start_date = datetime.now() + timedelta(days=days_to_next_water[i])
-            scheduler.add_job(call.message.answer, 'interval', days=7, start_date=start_date,
-                              args=[f"Напоминаю полить 🌧️ {data['flower_name']}"],
-                              id=f"{data['flower_name']}_{days[i]}")    # id = "Фиалка_3"
+            scheduler.add_job(
+                call.message.answer,
+                "interval",
+                days=7,
+                start_date=start_date,
+                args=[f"Напоминаю полить 🌧️ {data['flower_name']}"],
+                id=f"{data['flower_name']}_{days[i]}",
+            )  # id = "Фиалка_3"
     else:
         if call.data.split(":")[1] in list_of_days:
             list_of_days.remove(call.data.split(":")[1])
@@ -292,21 +332,29 @@ async def handle_delete_notifications(call: CallbackQuery):
     for flower in flowers[user_id].keys():
         builder.button(
             text=flower,
-            callback_data=EditNotificationCallback(flower_name=flower, action="delete").pack()
+            callback_data=EditNotificationCallback(
+                flower_name=flower, action="delete"
+            ).pack(),
         )
     builder.adjust(1)
     await call.answer()
-    await call.message.edit_text(text="Ваши напоминания:", reply_markup=builder.as_markup())
+    await call.message.edit_text(
+        text="Ваши напоминания:", reply_markup=builder.as_markup()
+    )
 
 
 # Подтверждение удаления
-@router.callback_query(EditNotificationCallback.filter(F.action == 'delete'))
-async def handle_accept_delete_notification(call: CallbackQuery, callback_data: EditNotificationCallback):
+@router.callback_query(EditNotificationCallback.filter(F.action == "delete"))
+async def handle_accept_delete_notification(
+    call: CallbackQuery, callback_data: EditNotificationCallback
+):
     flower_name = callback_data.flower_name
     builder = InlineKeyboardBuilder()
     builder.button(
         text="Удалить!",
-        callback_data=EditNotificationCallback(action="accept_delete", flower_name=flower_name).pack()
+        callback_data=EditNotificationCallback(
+            action="accept_delete", flower_name=flower_name
+        ).pack(),
     )
     await call.answer()
     await call.message.edit_text(
@@ -317,7 +365,9 @@ async def handle_accept_delete_notification(call: CallbackQuery, callback_data: 
 
 # Собственно, удаление напоминания из "бд"
 @router.callback_query(EditNotificationCallback.filter(F.action == "accept_delete"))
-async def handle_delete_notification(call: CallbackQuery, callback_data: EditNotificationCallback):
+async def handle_delete_notification(
+    call: CallbackQuery, callback_data: EditNotificationCallback
+):
     user_id = str(call.from_user.id)
     flower_name = callback_data.flower_name
     global flowers
@@ -329,4 +379,6 @@ async def handle_delete_notification(call: CallbackQuery, callback_data: EditNot
 
     del flowers[user_id][flower_name]
     await call.answer()
-    await call.message.edit_text(text="Удалено!",)
+    await call.message.edit_text(
+        text="Удалено!",
+    )

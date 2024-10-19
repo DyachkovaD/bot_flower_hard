@@ -25,13 +25,10 @@ days_of_week = {
 def build_weekdays_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for k, v in days_of_week.items():
-        builder.button(
-            text=v[0],
-            callback_data=WeekCallback(day_of_week=k).pack()
-        )
+        builder.button(text=v[0], callback_data=WeekCallback(day_of_week=k).pack())
     builder.button(
         text="Готово!",
-        callback_data=WeekCallback(day_of_week='ready').pack(),
+        callback_data=WeekCallback(day_of_week="ready").pack(),
     )
     builder.adjust(7)
     return builder.as_markup()
